@@ -96,29 +96,30 @@ public:
 
     template <typename Iter>
     SingleLinkedList(Iter begin, Iter end) {
-        std::vector<Type> v(begin, end);
-        for( auto it = v.rbegin(); it != v.rend(); ++it ) {
-            PushFront(*it);
-        }
-    }
-    
-    SingleLinkedList(std::initializer_list<Type> values) {
-        SingleLinkedList tmp(values.begin(), values.end());
-        swap(tmp);
-    }
-
-    SingleLinkedList(const SingleLinkedList& other) {
         assert(size_ == 0 && head_.next_node == nullptr);
-        try {
-            SingleLinkedList tmp(other.begin(), other.end());
-            swap(tmp);
-        } catch (const std::bad_alloc&) {
+        SingleLinkedList tmp;
+        Iterator pos{&tmp.head_};
+        try { 
+            for( auto it = begin; it != end; ++it ) {
+                pos = tmp.InsertAfter(pos, *it);
+            }
+            swap(tmp); 
+        }
+        catch(const std::bad_alloc&) {
             throw;
         }
     }
+    
+    SingleLinkedList(std::initializer_list<Type> values): SingleLinkedList(values.begin(), values.end()) {
+    }
+
+    SingleLinkedList(const SingleLinkedList& other): SingleLinkedList(other.begin(), other.end()) {
+    }
 
     SingleLinkedList& operator=(const SingleLinkedList& rhs) {
-        assert(this->head_.next_node != rhs.head_.next_node);
+        if(this->head_.next_node == rhs.head_.next_node) {
+            return *this;
+        }
         SingleLinkedList rhs_copy(rhs);
         swap(rhs_copy);
         return *this;
@@ -126,15 +127,8 @@ public:
 
     // Обменивает содержимое списков за время O(1)
     void swap(SingleLinkedList& other) noexcept {
-        SingleLinkedList temp_list;
-        temp_list.head_.next_node = other.head_.next_node;
-        temp_list.size_ = other.size_;
-        other.head_.next_node = head_.next_node;
-        other.size_ = size_;
-        head_.next_node = temp_list.head_.next_node;
-        size_ = temp_list.size_;
-        temp_list.head_.next_node = nullptr;
-        temp_list.size_ = 0;
+        std::swap(head_.next_node, other.head_.next_node);
+        std::swap(size_, other.size_);
     }
 
     // Возвращает количество элементов в списке за время O(1)
@@ -173,9 +167,6 @@ public:
     using ConstIterator = BasicIterator<const Type>;
 
     [[nodiscard]] Iterator begin() noexcept {
-        if(IsEmpty()) {
-            return end();
-        }
         return Iterator{head_.next_node};
     }
 
@@ -184,9 +175,6 @@ public:
     }
 
     [[nodiscard]] ConstIterator begin() const noexcept {
-        if(IsEmpty()) {
-            return end();
-        }
         return cbegin();
     }
 
@@ -195,9 +183,6 @@ public:
     }
 
     [[nodiscard]] ConstIterator cbegin() const noexcept {
-        if(IsEmpty()) {
-            return end();
-        }
         return ConstIterator{head_.next_node};
     }
 
@@ -218,6 +203,7 @@ public:
     }
 
     Iterator InsertAfter(ConstIterator pos, const Type& value) {
+        assert(pos.node_ != nullptr);
         Node* new_node = new Node(value, pos.node_->next_node);
         pos.node_->next_node = new_node;
         ++size_;
@@ -233,9 +219,12 @@ public:
     }
 
     Iterator EraseAfter(ConstIterator pos) noexcept {
+        assert(pos.node_ != nullptr);
+        assert(pos.node_->next_node != nullptr);
         auto new_node = pos.node_->next_node->next_node;
         delete pos.node_->next_node;
         pos.node_->next_node = new_node;
+        --size_;
         return Iterator{new_node};
     }
 
@@ -246,14 +235,14 @@ private:
 
 template <typename Type>
 void swap(SingleLinkedList<Type>& lhs, SingleLinkedList<Type>& rhs) noexcept {
-    SingleLinkedList<Type> tmp;
-    tmp.swap(lhs);
     lhs.swap(rhs);
-    rhs.swap(tmp);
 }
 
 template <typename Type>
 bool operator==(const SingleLinkedList<Type>& lhs, const SingleLinkedList<Type>& rhs) {
+    if(lhs.GetSize() != rhs.GetSize()) {
+        return false;
+    }
     return std::equal(lhs.begin(), lhs.end(), rhs.begin(), rhs.end());
 }
 

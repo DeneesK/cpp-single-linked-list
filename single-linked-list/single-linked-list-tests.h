@@ -308,7 +308,6 @@ void Test3() {
     // Лексикографическое сравнение списков
     {
         using IntList = SingleLinkedList<int>;
-
         assert((IntList{1, 2, 3} < IntList{1, 2, 3, 1}));
         assert((IntList{1, 2, 3} <= IntList{1, 2, 3}));
         assert((IntList{1, 2, 4} > IntList{1, 2, 3}));
